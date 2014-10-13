@@ -99,3 +99,11 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+*table.txt
+
+#TeX
+*.aux
+*.pdf
+*.fls
+*.fdb_latexmk
+*.synctex.gz
