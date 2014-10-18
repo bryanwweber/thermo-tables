@@ -1,6 +1,8 @@
 import requests
 import numpy as np
 from io import BytesIO
+from generate_tex import saturated_temperature_tex
+import subprocess
 
 desired_cols = [
     'Temperature_C',
@@ -73,30 +75,38 @@ temp_out = np.insert(temp_out, 7, h_fg, axis=1)
 header=('Temperature       Pressure          volume-l          volume-v          '
     'internal-energy-l internal-energy-v enthalpy-l        enthalpy-fg       enthalpy-v        entropy-l         entropy-v')
 
-np.savetxt('temperature-sat-table.txt', temp_out, fmt='%017.12f', delimiter=' ', newline='\n', header=header, comments='')
+# print(header+'\n', np.array_str(temp_out, max_line_width=1000).replace('[', '').replace(']', ''))
+tex = saturated_temperature_tex(header+'\n'+ np.array_str(temp_out, max_line_width=1000).replace('[', '').replace(']', ''))
+# print(tex)
+proc = subprocess.Popen('pdflatex -jobname=sat-table', stdin=subprocess.PIPE)
+proc.communicate(bytes(tex, 'utf-8'))
+proc = subprocess.Popen('pdflatex -jobname=sat-table', stdin=subprocess.PIPE)
+proc.communicate(bytes(tex, 'utf-8'))
 
-payload['TLow'] = None
-payload['THigh'] = None
-payload['TInc'] = None
-payload['Type'] = 'SatT'
-pres_out = np.zeros((1,len(desired_cols)))
-for pres in press:
-    payload['PLow'] = pres[0]
-    payload['PHigh'] = pres[1]
-    payload['PInc'] = pres[2]
+# np.savetxt('temperature-sat-table.txt', temp_out, fmt='%017.12f', delimiter=' ', newline='\n', header=header, comments='')
 
-    r = requests.get('http://webbook.nist.gov/cgi/fluid.cgi?', params=payload)
-    # print(r.url)
+# payload['TLow'] = None
+# payload['THigh'] = None
+# payload['TInc'] = None
+# payload['Type'] = 'SatT'
+# pres_out = np.zeros((1,len(desired_cols)))
+# for pres in press:
+#     payload['PLow'] = pres[0]
+#     payload['PHigh'] = pres[1]
+#     payload['PInc'] = pres[2]
 
-    data = np.genfromtxt(BytesIO(r.text.encode()), dtype=float, delimiter='\t', names=True)
+#     r = requests.get('http://webbook.nist.gov/cgi/fluid.cgi?', params=payload)
+#     # print(r.url)
 
-    out = []
-    for col in desired_cols:
-        out.append(data[col])
+#     data = np.genfromtxt(BytesIO(r.text.encode()), dtype=float, delimiter='\t', names=True)
 
-    pres_out = np.vstack((pres_out, np.array(out).transpose()))
+#     out = []
+#     for col in desired_cols:
+#         out.append(data[col])
 
-pres_out = np.delete(pres_out, 0, axis=0)
-h_fg = pres_out[:,7] - pres_out[:,6]
-pres_out = np.insert(pres_out, 7, h_fg, axis=1)
-np.savetxt('pressure-sat-table.txt', pres_out, fmt='%017.12f', delimiter=' ', newline='\n', header=header, comments='')
+#     pres_out = np.vstack((pres_out, np.array(out).transpose()))
+
+# pres_out = np.delete(pres_out, 0, axis=0)
+# h_fg = pres_out[:,7] - pres_out[:,6]
+# pres_out = np.insert(pres_out, 7, h_fg, axis=1)
+# np.savetxt('pressure-sat-table.txt', pres_out, fmt='%017.12f', delimiter=' ', newline='\n', header=header, comments='')
