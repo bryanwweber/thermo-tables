@@ -1,8 +1,10 @@
 import requests
 import numpy as np
 from io import BytesIO
-from generate_tex import saturated_temperature_tex
+import generate_tex
 import subprocess
+
+tex = generate_tex.tex_begin()
 
 desired_cols = [
     'Temperature_C',
@@ -36,7 +38,7 @@ temps = [
         [0.01, 0.02, 1],
         [4, 40, 1],
         [45, 100, 5],
-        [100, 370, 10],
+        [110, 370, 10],
         [373.946, 373.946, 1],
         ]
 
@@ -58,7 +60,6 @@ for temp in temps:
     payload['TInc'] = temp[2]
 
     r = requests.get('http://webbook.nist.gov/cgi/fluid.cgi?', params=payload)
-    # print(r.url)
 
     data = np.genfromtxt(BytesIO(r.text.encode()), dtype=float, delimiter='\t', names=True)
 
@@ -72,41 +73,43 @@ temp_out = np.delete(temp_out, 0, axis=0)
 h_fg = temp_out[:,7] - temp_out[:,6]
 temp_out = np.insert(temp_out, 7, h_fg, axis=1)
 
-header=('Temperature       Pressure          volume-l          volume-v          '
-    'internal-energy-l internal-energy-v enthalpy-l        enthalpy-fg       enthalpy-v        entropy-l         entropy-v')
+header=('Temperature  Pressure  volume-l  volume-v internal-energy-l '
+        'internal-energy-v enthalpy-l enthalpy-fg enthalpy-v entropy-l entropy-v')
 
 # print(header+'\n', np.array_str(temp_out, max_line_width=1000).replace('[', '').replace(']', ''))
-tex = saturated_temperature_tex(header+'\n'+ np.array_str(temp_out, max_line_width=1000).replace('[', '').replace(']', ''))
-# print(tex)
-proc = subprocess.Popen('pdflatex -jobname=sat-table', stdin=subprocess.PIPE)
-proc.communicate(bytes(tex, 'utf-8'))
-proc = subprocess.Popen('pdflatex -jobname=sat-table', stdin=subprocess.PIPE)
-proc.communicate(bytes(tex, 'utf-8'))
+tex += generate_tex.saturated_temperature_tex(header + '\n' + np.array_str(temp_out, max_line_width=1000).replace('[', '').replace(']', ''))
+tex += "\\newpage\n"
 
-# np.savetxt('temperature-sat-table.txt', temp_out, fmt='%017.12f', delimiter=' ', newline='\n', header=header, comments='')
+payload['TLow'] = None
+payload['THigh'] = None
+payload['TInc'] = None
+payload['Type'] = 'SatT'
+pres_out = np.zeros((1,len(desired_cols)))
+for pres in press:
+    payload['PLow'] = pres[0]
+    payload['PHigh'] = pres[1]
+    payload['PInc'] = pres[2]
 
-# payload['TLow'] = None
-# payload['THigh'] = None
-# payload['TInc'] = None
-# payload['Type'] = 'SatT'
-# pres_out = np.zeros((1,len(desired_cols)))
-# for pres in press:
-#     payload['PLow'] = pres[0]
-#     payload['PHigh'] = pres[1]
-#     payload['PInc'] = pres[2]
+    r = requests.get('http://webbook.nist.gov/cgi/fluid.cgi?', params=payload)
 
-#     r = requests.get('http://webbook.nist.gov/cgi/fluid.cgi?', params=payload)
-#     # print(r.url)
+    data = np.genfromtxt(BytesIO(r.text.encode()), dtype=float, delimiter='\t', names=True)
 
-#     data = np.genfromtxt(BytesIO(r.text.encode()), dtype=float, delimiter='\t', names=True)
+    out = []
+    for col in desired_cols:
+        out.append(data[col])
 
-#     out = []
-#     for col in desired_cols:
-#         out.append(data[col])
+    pres_out = np.vstack((pres_out, np.array(out).transpose()))
 
-#     pres_out = np.vstack((pres_out, np.array(out).transpose()))
-
-# pres_out = np.delete(pres_out, 0, axis=0)
-# h_fg = pres_out[:,7] - pres_out[:,6]
-# pres_out = np.insert(pres_out, 7, h_fg, axis=1)
+pres_out = np.delete(pres_out, 0, axis=0)
+h_fg = pres_out[:,7] - pres_out[:,6]
+pres_out = np.insert(pres_out, 7, h_fg, axis=1)
 # np.savetxt('pressure-sat-table.txt', pres_out, fmt='%017.12f', delimiter=' ', newline='\n', header=header, comments='')
+
+tex += generate_tex.saturated_pressure_tex(header + '\n' + np.array_str(pres_out, max_line_width=1000).replace('[', '').replace(']', ''))
+
+tex += generate_tex.tex_end()
+
+proc = subprocess.Popen('pdflatex -jobname=sat-table', stdin=subprocess.PIPE)
+proc.communicate(bytes(tex, 'utf-8'))
+proc = subprocess.Popen('pdflatex -jobname=sat-table', stdin=subprocess.PIPE)
+proc.communicate(bytes(tex, 'utf-8'))
