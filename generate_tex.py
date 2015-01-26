@@ -1,4 +1,8 @@
 from collections import OrderedDict, namedtuple
+from math import log10, floor
+
+def round_sig(x, sig=2):
+    return round(x, sig-int(floor(log10(abs(x)))))
 
 Columns = namedtuple('Columns', ['col_name', 'unit', 'num_of_cols'])
 
@@ -9,16 +13,16 @@ sat_cols = [
     Columns('Entropy', '\\kilo\\joule\\per\\kilogram\\per\\kelvin', 2),
 ]
 
-col_list = OrderedDict()
-col_list['volume-l'] = "column type={S[table-omit-exponent, fixed-exponent=-3, table-format=1.4, round-mode=places, round-precision=4,]},\n"
-col_list['volume-v'] = "column type={S[table-format=3.6, round-mode=places, round-precision=3,]},\n"
-col_list['internal-energy-l'] = "column type={S[table-format=4.2, round-mode=places, round-precision=2,]},\n"
-col_list['internal-energy-v'] = "column type={S[table-format=4.1, round-mode=places, round-precision=1,]},\n"
-col_list['enthalpy-l'] = "column type={S[table-format=4.2, round-mode=places, round-precision=2,]},\n"
-col_list['enthalpy-fg'] = "column type={S[table-format=4.1, round-mode=places, round-precision=1,]},\n"
-col_list['enthalpy-v'] = "column type={S[table-format=4.1, round-mode=places, round-precision=1,]},\n"
-col_list['entropy-l'] = "column type={S[table-format=1.4, round-mode=places, round-precision=4,]},\n"
-col_list['entropy-v'] = "column type={S[table-format=1.4, round-mode=places, round-precision=4,]},\ncolumn type/.add={}{|},\n"
+sat_col_list = OrderedDict()
+sat_col_list['volume-l'] = "column type={S[table-omit-exponent, fixed-exponent=-3, table-format=1.4, round-mode=places, round-precision=4,]},\n"
+sat_col_list['volume-v'] = "column type={S[table-format=3.6, round-mode=places, round-precision=3,]},\n"
+sat_col_list['internal-energy-l'] = "column type={S[table-format=4.2, round-mode=places, round-precision=2,]},\n"
+sat_col_list['internal-energy-v'] = "column type={S[table-format=4.1, round-mode=places, round-precision=1,]},\n"
+sat_col_list['enthalpy-l'] = "column type={S[table-format=4.2, round-mode=places, round-precision=2,]},\n"
+sat_col_list['enthalpy-fg'] = "column type={S[table-format=4.1, round-mode=places, round-precision=1,]},\n"
+sat_col_list['enthalpy-v'] = "column type={S[table-format=4.1, round-mode=places, round-precision=1,]},\n"
+sat_col_list['entropy-l'] = "column type={S[table-format=1.4, round-mode=places, round-precision=4,]},\n"
+sat_col_list['entropy-v'] = "column type={S[table-format=1.4, round-mode=places, round-precision=4,]},\ncolumn type/.add={}{|},\n"
 
 def tex_begin():
     return ("\\documentclass{article}\n\\usepackage[margin=0.5in]{geometry}\n"
@@ -32,10 +36,10 @@ def tex_end():
     return "\\end{center}\n\\end{document}\n"
 
 def saturated_temperature_tex(input_table):
-    col_list['Temperature'] = "column type={S[table-format=3.2, round-mode=places, round-precision=2, zero-decimal-to-integer,]},\n"
-    col_list['Pressure'] = "column type={S[table-format=3.4, round-mode=places, round-precision=4,]},\n"
-    col_list.move_to_end('Pressure', last=False)
-    col_list.move_to_end('Temperature', last=False)
+    sat_col_list['Temperature'] = "column type={S[table-format=3.2, round-mode=places, round-precision=2, zero-decimal-to-integer,]},\n"
+    sat_col_list['Pressure'] = "column type={S[table-format=3.4, round-mode=places, round-precision=4,]},\n"
+    sat_col_list.move_to_end('Pressure', last=False)
+    sat_col_list.move_to_end('Temperature', last=False)
     tex_string = ("\\pgfplotstabletypeset[\nevery head row/.style={\nbefore row={"
                    "\\multicolumn{12}{c}{\\Large Properties of Saturated Water "
                    "(Liquid-Vapor): Temperature Table} \\\\[5pt] \\toprule\n&& ")
@@ -64,7 +68,7 @@ def saturated_temperature_tex(input_table):
                   )
 
     format_chunk = ""
-    for col, fmt in col_list.items():
+    for col, fmt in sat_col_list.items():
         tex_string += "{col}, ".format(col=col)
         format_chunk += "columns/{col}/.style={{\nstring type,\n".format(col=col)
         format_chunk += fmt
@@ -82,10 +86,10 @@ def saturated_temperature_tex(input_table):
     return tex_string
 
 def saturated_pressure_tex(input_table):
-    col_list['Temperature'] = "column type={S[table-format=3.2, round-mode=places, round-precision=2,]},\n"
-    col_list['Pressure'] = "column type={S[table-format=3.2, round-mode=places, round-precision=2,]},\n"
-    col_list.move_to_end('Temperature', last=False)
-    col_list.move_to_end('Pressure', last=False)
+    sat_col_list['Temperature'] = "column type={S[table-format=3.2, round-mode=places, round-precision=2,]},\n"
+    sat_col_list['Pressure'] = "column type={S[table-format=3.2, round-mode=places, round-precision=2,]},\n"
+    sat_col_list.move_to_end('Temperature', last=False)
+    sat_col_list.move_to_end('Pressure', last=False)
     tex_string = ("\\pgfplotstabletypeset[\nevery head row/.style={\nbefore row={"
                    "\\multicolumn{12}{c}{\\Large Properties of Saturated Water "
                    "(Liquid-Vapor): Pressure Table} \\\\[5pt] \\toprule\n&& ")
@@ -114,7 +118,7 @@ def saturated_pressure_tex(input_table):
                   )
 
     format_chunk = ""
-    for col, fmt in col_list.items():
+    for col, fmt in sat_col_list.items():
         tex_string += "{col}, ".format(col=col)
         format_chunk += "columns/{col}/.style={{\nstring type,\n".format(col=col)
         format_chunk += fmt
@@ -131,5 +135,28 @@ def saturated_pressure_tex(input_table):
     tex_string += "\n}\n"
     return tex_string
 
+def superheated_begin_tex(low_pres, high_pres):
+    tex_string = ("\\pgfplotstabletypeset[\nevery head row/.style={\nbefore row={"
+                  "\\multicolumn{11}{c}{\\Large Properties of Superheated Water "
+                  "Vapor} \\\\[5pt] \\toprule%\n$T$ & $v$ & $u$ & $h$ & $s$ &&& $v$ & "
+                  "$u$ & $h$ & $s$ \\\\%\n\\si{\\degreeCelsius} & "
+                  "\\si{\\meter\\cubed\\per\\kilogram} & \\si{\\kilo\\joule\\per\\kilogram} & "
+                  "\\si{\\kilo\\joule\\per\\kilogram} & \\si{\\kilo\\joule\\per\\kilogram\\per\\kelvin} &"
+                  "&& \\si{\\meter\\cubed\\per\\kilogram} & \\si{\\kilo\\joule\\per\\kilogram} & "
+                  "\\si{\\kilo\\joule\\per\\kilogram} & \\si{\\kilo\\joule\\per\\kilogram\\per\\kelvin} "
+                  "\\\\%\n\\midrule%\n},\noutput empty row,\n},\n"
+                  "every first row/.style={%\nbefore row/.add={%\n& "
+                 )
+    tex_string += ("\\multicolumn{{4}}{{c}}{{$p = {low_pres} \\si{{\\bar}} = "
+                   "{low_mpa} \\si{{\\MPa}}$}} &&& \\multicolumn{{4}}{{c}}{{$p "
+                   "= {high_pres} \\si{{\\bar}} = {high_mpa} \\si{{\\MPa}}$}} "
+                   "\\\\\n".format(low_pres=round_sig(low_pres, 3), low_mpa=round_sig(low_pres/10, 3),
+                   high_pres=round_sig(high_pres, 3), high_mpa=round_sig(high_pres/10, 3))
+                  )
+    print(tex_string)
+
+def superheated_new_pressure_tex():
+    tex_string = ("\\pgfplotstabletypeset[\nevery head row/.style={\noutput empty row\n},\n")
+
 if __name__ == '__main__':
-    saturated_temperature_tex('1')
+    superheated_begin_tex(1.000, 100.0)
